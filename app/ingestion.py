@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+
 import ollama
 from langchain_chroma import Chroma
 from langchain_core.embeddings import Embeddings
@@ -9,6 +10,8 @@ from langchain_text_splitters import (
     RecursiveCharacterTextSplitter,
 )
 
+from app.config import settings
+
 
 class LocalEmbeddings(Embeddings):
     def __init__(self, model):
@@ -16,11 +19,9 @@ class LocalEmbeddings(Embeddings):
 
     def embed_documents(self, texts):
         embeddings = []
-
         for text in texts:
             response = ollama.embeddings(model=self.model, prompt=text)
             embeddings.append(response["embedding"])
-        print("Embedding done...")
         return embeddings
 
     def embed_query(self, text):
@@ -29,20 +30,18 @@ class LocalEmbeddings(Embeddings):
 
 
 def parse_and_chunk():
-    filepath = Path("data/riscv.pdf")
+    filepath = Path(settings.pdf_path)
     if not filepath.is_file():
-        print("File not found")
-        return
+        return None
 
-    loader = OpenDataLoaderPDFLoader(file_path=filepath, format="markdown", quiet=True)
+    loader = OpenDataLoaderPDFLoader(
+        file_path=filepath, format="markdown", quiet=True
+    )
     docs = loader.load()
 
     md = ""
-
     for doc in docs:
         md += doc.page_content
-
-    print("Parsing PDF Done...")
 
     headers_to_split_on = [
         ("#", "Chapter"),
@@ -58,25 +57,28 @@ def parse_and_chunk():
     header_chunks = markdown_splitter.split_text(md)
 
     safety_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1500, chunk_overlap=200, separators=["\n\n", "\n", " ", ""]
+        chunk_size=settings.chunk_size,
+        chunk_overlap=settings.chunk_overlap,
+        separators=["\n\n", "\n", " ", ""],
     )
 
     final_chunks = safety_splitter.split_documents(header_chunks)
-    print("Chunking done...")
     return final_chunks
 
 
 def ingestion():
-    if os.path.exists("data/riscv_vector_db/"):
-        return
+    try:
+        if os.path.exists(settings.chroma_db_path):
+            return
 
-    chunks = parse_and_chunk()
-    if not chunks:
-        return
+        chunks = parse_and_chunk()
+        if not chunks:
+            return
 
-    Chroma.from_documents(
-        documents=chunks,
-        embedding=LocalEmbeddings(model="nomic-embed-text"),
-        persist_directory="./data/riscv_vector_db",
-    )
-    print("Vector DB created...")
+        Chroma.from_documents(
+            documents=chunks,
+            embedding=LocalEmbeddings(model=settings.embed_model),
+            persist_directory=settings.chroma_db_path,
+        )
+    except Exception:
+        pass

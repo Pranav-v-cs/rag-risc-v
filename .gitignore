@@ -29,3 +29,7 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Generated data
+data/chat.db
+data/riscv_vector_db/
