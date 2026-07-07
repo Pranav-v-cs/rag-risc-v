@@ -180,9 +180,9 @@ def ask(body: AskRequest, session: Session = Depends(get_session)):
                     yield f"data: {json.dumps({'type': 'token', 'token': token})}\n\n"
 
                 yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
-                yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
                 _save_messages(body.chat_id, body.query, full_answer, sources)
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
             except Exception as e:
                 yield f"data: {json.dumps({'type': 'error', 'detail': str(e)})}\n\n"
 
