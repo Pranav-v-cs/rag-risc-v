@@ -16,6 +16,15 @@ export interface Message {
   created_at: string;
 }
 
+export interface Doc {
+  id: string;
+  filename: string;
+  title: string;
+  chunk_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface StreamEvent {
   type: "start" | "token" | "sources" | "done" | "error";
   token?: string;

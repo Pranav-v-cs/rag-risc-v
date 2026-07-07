@@ -29,3 +29,19 @@ class Message(SQLModel, table=True):
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
+
+
+class Document(SQLModel, table=True):
+    id: str = Field(
+        primary_key=True, default_factory=lambda: str(uuid.uuid4())
+    )
+    filename: str
+    title: str = ""
+    file_path: str
+    chunk_count: int = 0
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )

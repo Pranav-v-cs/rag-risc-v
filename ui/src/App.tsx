@@ -1,10 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { ChatPanel } from "./components/ChatPanel";
+import { DocumentsPage } from "./components/DocumentsPage";
 import type { Chat, Message } from "./types";
 import * as api from "./lib/api";
 
+type View = "chat" | "documents";
+
 export default function App() {
+  const [view, setView] = useState<View>("chat");
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -101,21 +105,52 @@ export default function App() {
   );
 
   return (
-    <div className="h-screen flex bg-white text-gray-900">
-      <Sidebar
-        chats={chats}
-        activeChatId={activeChatId}
-        onSelect={selectChat}
-        onNew={createChat}
-        onDelete={deleteChat}
-      />
-      <ChatPanel
-        messages={messages}
-        streamingContent={streamingContent}
-        isStreaming={isStreaming}
-        selectedChatId={activeChatId}
-        onSend={sendMessage}
-      />
+    <div className="h-screen flex flex-col bg-white text-gray-900">
+      <div className="flex border-b border-gray-200 shrink-0">
+        <button
+          onClick={() => setView("chat")}
+          className={`px-5 py-2.5 text-sm font-medium transition-colors ${
+            view === "chat"
+              ? "text-gray-900 border-b-2 border-gray-900"
+              : "text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          Chat
+        </button>
+        <button
+          onClick={() => setView("documents")}
+          className={`px-5 py-2.5 text-sm font-medium transition-colors ${
+            view === "documents"
+              ? "text-gray-900 border-b-2 border-gray-900"
+              : "text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          Documents
+        </button>
+      </div>
+
+      <div className="flex-1 flex min-h-0">
+        {view === "chat" ? (
+          <>
+            <Sidebar
+              chats={chats}
+              activeChatId={activeChatId}
+              onSelect={selectChat}
+              onNew={createChat}
+              onDelete={deleteChat}
+            />
+            <ChatPanel
+              messages={messages}
+              streamingContent={streamingContent}
+              isStreaming={isStreaming}
+              selectedChatId={activeChatId}
+              onSend={sendMessage}
+            />
+          </>
+        ) : (
+          <DocumentsPage />
+        )}
+      </div>
     </div>
   );
 }

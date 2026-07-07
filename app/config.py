@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     pdf_path: str = "data/riscv.pdf"
     chroma_db_path: str = "data/riscv_vector_db"
     sqlite_path: str = "data/chat.db"
+    documents_dir: str = "data/documents"
     embed_model: str = "nomic-embed-text"
     llm_model: str = "llama3.2"
     chunk_size: int = 1500

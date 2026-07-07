@@ -9,6 +9,7 @@ from starlette.responses import StreamingResponse
 
 from app.config import settings
 from app.database import get_session, init_db, new_session
+from app.documents import router as documents_router
 from app.ingestion import ingestion
 from app.models import Chat, Message
 from app.query import prepare_context, query
@@ -26,6 +27,7 @@ class CreateChatRequest(BaseModel):
 
 
 app = FastAPI()
+app.include_router(documents_router)
 
 
 @app.on_event("startup")

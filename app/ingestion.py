@@ -29,13 +29,20 @@ class LocalEmbeddings(Embeddings):
         return response["embedding"]
 
 
-def parse_and_chunk():
-    filepath = Path(settings.pdf_path)
+def _get_vector_store():
+    return Chroma(
+        persist_directory=settings.chroma_db_path,
+        embedding_function=LocalEmbeddings(settings.embed_model),
+    )
+
+
+def parse_and_chunk(filepath: str | Path):
+    filepath = Path(filepath)
     if not filepath.is_file():
         return None
 
     loader = OpenDataLoaderPDFLoader(
-        file_path=filepath, format="markdown", quiet=True
+        file_path=str(filepath), format="markdown", quiet=True
     )
     docs = loader.load()
 
@@ -66,12 +73,38 @@ def parse_and_chunk():
     return final_chunks
 
 
+def index_pdf(file_path: str, document_id: str) -> int:
+    chunks = parse_and_chunk(file_path)
+    if not chunks:
+        return 0
+
+    for chunk in chunks:
+        chunk.metadata["document_id"] = document_id
+
+    vector_store = _get_vector_store()
+    vector_store.add_documents(chunks)
+    return len(chunks)
+
+
+def deindex_document(document_id: str) -> int:
+    vector_store = _get_vector_store()
+    results = vector_store.get(where={"document_id": document_id})
+    ids = results.get("ids", [])
+    if ids:
+        vector_store.delete(ids)
+    return len(ids)
+
+
 def ingestion():
     try:
         if os.path.exists(settings.chroma_db_path):
             return
 
-        chunks = parse_and_chunk()
+        filepath = Path(settings.pdf_path)
+        if not filepath.is_file():
+            return
+
+        chunks = parse_and_chunk(str(filepath))
         if not chunks:
             return
 

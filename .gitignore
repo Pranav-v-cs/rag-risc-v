@@ -33,3 +33,4 @@ Thumbs.db
 # Generated data
 data/chat.db
 data/riscv_vector_db/
+data/documents/
