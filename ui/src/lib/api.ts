@@ -52,7 +52,14 @@ export async function uploadDocument(
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || "Upload failed");
+    let message = "Upload failed";
+    try {
+      const json = JSON.parse(text);
+      message = json.detail || message;
+    } catch {
+      message = text || message;
+    }
+    throw new Error(message);
   }
   return res.json();
 }
@@ -68,6 +75,23 @@ export async function renameDocument(
   });
   if (!res.ok) throw new Error("Failed to rename document");
   return res.json();
+}
+
+export async function downloadDocument(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/documents/${id}/download`);
+  if (!res.ok) throw new Error("Failed to download document");
+  const blob = await res.blob();
+  const disposition = res.headers.get("content-disposition");
+  const match = disposition?.match(/filename="?(.+?)"?$/);
+  const filename = match?.[1] ?? "document.pdf";
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 export async function deleteDocument(id: string): Promise<void> {

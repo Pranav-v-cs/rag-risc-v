@@ -3,6 +3,7 @@ from pathlib import Path
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
@@ -46,7 +47,15 @@ async def upload_document(
     with open(file_path, "wb") as f:
         f.write(content)
 
-    chunk_count = index_pdf(str(file_path), doc_id)
+    try:
+        chunk_count = index_pdf(str(file_path), doc_id)
+    except Exception as e:
+        if file_path.is_file():
+            file_path.unlink()
+        detail = str(e)
+        if "connect" in detail.lower() or "refused" in detail.lower():
+            raise HTTPException(502, "Could not connect to Ollama. Make sure it is running.")
+        raise HTTPException(500, f"Failed to index document: {detail}")
 
     doc = Document(
         id=doc_id,
@@ -75,6 +84,23 @@ def rename_document(
     session.commit()
     session.refresh(doc)
     return doc
+
+
+@router.get("/{doc_id}/download")
+def download_document(doc_id: str, session: Session = Depends(get_session)):
+    doc = session.get(Document, doc_id)
+    if not doc:
+        raise HTTPException(404, "Document not found")
+
+    file_path = Path(doc.file_path)
+    if not file_path.is_file():
+        raise HTTPException(404, "File not found on disk")
+
+    return FileResponse(
+        path=str(file_path),
+        media_type="application/pdf",
+        filename=doc.filename,
+    )
 
 
 @router.delete("/{doc_id}")

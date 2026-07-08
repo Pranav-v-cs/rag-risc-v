@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Moon, Sun } from "lucide-react";
 import { Sidebar } from "./components/Sidebar";
 import { ChatPanel } from "./components/ChatPanel";
 import { DocumentsPage } from "./components/DocumentsPage";
@@ -14,6 +15,25 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [dark, setDark] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("theme");
+      if (stored) return stored === "dark";
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (dark) {
+      root.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      root.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [dark]);
 
   useEffect(() => {
     api.listChats().then(setChats).catch(console.error);
@@ -105,14 +125,14 @@ export default function App() {
   );
 
   return (
-    <div className="h-screen flex flex-col bg-white text-gray-900">
-      <div className="flex border-b border-gray-200 shrink-0">
+    <div className="h-screen flex flex-col bg-background text-foreground">
+      <div className="flex items-center border-b border-border shrink-0">
         <button
           onClick={() => setView("chat")}
           className={`px-5 py-2.5 text-sm font-medium transition-colors ${
             view === "chat"
-              ? "text-gray-900 border-b-2 border-gray-900"
-              : "text-gray-400 hover:text-gray-600"
+              ? "text-foreground border-b-2 border-foreground"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           Chat
@@ -121,12 +141,22 @@ export default function App() {
           onClick={() => setView("documents")}
           className={`px-5 py-2.5 text-sm font-medium transition-colors ${
             view === "documents"
-              ? "text-gray-900 border-b-2 border-gray-900"
-              : "text-gray-400 hover:text-gray-600"
+              ? "text-foreground border-b-2 border-foreground"
+              : "text-muted-foreground hover:text-foreground"
           }`}
         >
           Documents
         </button>
+
+        <div className="ml-auto mr-3">
+          <button
+            onClick={() => setDark((d) => !d)}
+            className="p-2 rounded-md hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+            title={dark ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 flex min-h-0">
