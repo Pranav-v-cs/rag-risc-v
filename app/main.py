@@ -11,7 +11,7 @@ from app.config import settings
 from app.database import get_session, init_db, new_session
 from app.documents import router as documents_router
 from app.ingestion import ingestion
-from app.models import Chat, Message
+from app.models import Chat, ChatDocument, Message, Document
 from app.query import prepare_context, query
 
 
@@ -24,6 +24,7 @@ class AskRequest(BaseModel):
 
 class CreateChatRequest(BaseModel):
     title: str | None = None
+    document_ids: list[str] | None = None
 
 
 app = FastAPI()
@@ -64,6 +65,12 @@ def create_chat(body: CreateChatRequest, session: Session = Depends(get_session)
     session.add(chat)
     session.commit()
     session.refresh(chat)
+
+    if body.document_ids:
+        for doc_id in body.document_ids:
+            session.add(ChatDocument(chat_id=chat.id, document_id=doc_id))
+        session.commit()
+
     return chat
 
 
@@ -106,6 +113,45 @@ def get_chat(chat_id: str, session: Session = Depends(get_session)):
     return {"chat": chat, "messages": messages}
 
 
+@app.get("/chats/{chat_id}/documents")
+def get_chat_documents(chat_id: str, session: Session = Depends(get_session)):
+    chat = session.get(Chat, chat_id)
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+
+    links = session.exec(
+        select(ChatDocument).where(ChatDocument.chat_id == chat_id)
+    ).all()
+    doc_ids = [link.document_id for link in links]
+    docs = session.exec(select(Document).where(Document.id.in_(doc_ids))).all() if doc_ids else []
+    return docs
+
+
+class SetDocumentsRequest(BaseModel):
+    document_ids: list[str]
+
+
+@app.put("/chats/{chat_id}/documents")
+def set_chat_documents(
+    chat_id: str, body: SetDocumentsRequest, session: Session = Depends(get_session)
+):
+    chat = session.get(Chat, chat_id)
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+
+    existing = session.exec(
+        select(ChatDocument).where(ChatDocument.chat_id == chat_id)
+    ).all()
+    for link in existing:
+        session.delete(link)
+
+    for doc_id in body.document_ids:
+        session.add(ChatDocument(chat_id=chat_id, document_id=doc_id))
+
+    session.commit()
+    return {"ok": True}
+
+
 @app.delete("/chats/{chat_id}")
 def delete_chat(chat_id: str, session: Session = Depends(get_session)):
     chat = session.get(Chat, chat_id)
@@ -117,6 +163,13 @@ def delete_chat(chat_id: str, session: Session = Depends(get_session)):
     ).all()
     for msg in messages:
         session.delete(msg)
+
+    links = session.exec(
+        select(ChatDocument).where(ChatDocument.chat_id == chat_id)
+    ).all()
+    for link in links:
+        session.delete(link)
+
     session.delete(chat)
     session.commit()
     return {"ok": True}
@@ -156,6 +209,15 @@ def ask(body: AskRequest, session: Session = Depends(get_session)):
     chat = session.get(Chat, body.chat_id)
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
+
+    chat_doc_links = session.exec(
+        select(ChatDocument).where(ChatDocument.chat_id == body.chat_id)
+    ).all()
+    if not chat_doc_links:
+        raise HTTPException(
+            status_code=400,
+            detail="No documents selected for this chat. Please select documents before asking questions.",
+        )
 
     if body.stream:
         system_prompt, sources = prepare_context(

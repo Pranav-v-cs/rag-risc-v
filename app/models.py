@@ -31,6 +31,11 @@ class Message(SQLModel, table=True):
     )
 
 
+class ChatDocument(SQLModel, table=True):
+    chat_id: str = Field(foreign_key="chat.id", primary_key=True)
+    document_id: str = Field(foreign_key="document.id", primary_key=True)
+
+
 class Document(SQLModel, table=True):
     id: str = Field(
         primary_key=True, default_factory=lambda: str(uuid.uuid4())

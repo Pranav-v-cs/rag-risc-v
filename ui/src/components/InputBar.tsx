@@ -38,7 +38,7 @@ export function InputBar({ onSend, disabled }: InputBarProps) {
             e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Ask about RISC-V..."
+          placeholder="Ask questions about the docs uploaded..."
           disabled={disabled}
           rows={1}
           className="flex-1 resize-none rounded-lg border border-border bg-background px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent disabled:opacity-50 transition-shadow"

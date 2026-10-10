@@ -26,6 +26,24 @@ export async function createChat(title?: string): Promise<Chat> {
   return res.json();
 }
 
+export async function getChatDocuments(chatId: string): Promise<Doc[]> {
+  const res = await fetch(`${BASE}/chats/${chatId}/documents`);
+  if (!res.ok) throw new Error("Failed to load chat documents");
+  return res.json();
+}
+
+export async function setChatDocuments(
+  chatId: string,
+  documentIds: string[]
+): Promise<void> {
+  const res = await fetch(`${BASE}/chats/${chatId}/documents`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ document_ids: documentIds }),
+  });
+  if (!res.ok) throw new Error("Failed to set chat documents");
+}
+
 export async function deleteChat(chatId: string): Promise<void> {
   const res = await fetch(`${BASE}/chats/${chatId}`, {
     method: "DELETE",

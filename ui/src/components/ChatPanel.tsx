@@ -8,6 +8,7 @@ interface ChatPanelProps {
   streamingContent: string;
   isStreaming: boolean;
   selectedChatId: string | null;
+  error: string | null;
   onSend: (text: string) => void;
 }
 
@@ -16,6 +17,7 @@ export function ChatPanel({
   streamingContent,
   isStreaming,
   selectedChatId,
+  error,
   onSend,
 }: ChatPanelProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -71,6 +73,11 @@ export function ChatPanel({
         </div>
       </div>
 
+      {error && (
+        <div className="px-4 py-3 mx-4 mb-2 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+          {error}
+        </div>
+      )}
       <InputBar onSend={onSend} disabled={isStreaming} />
     </div>
   );

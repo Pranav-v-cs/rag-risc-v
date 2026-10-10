@@ -15,6 +15,7 @@ export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [streamingContent, setStreamingContent] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [dark, setDark] = useState(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("theme");
@@ -82,6 +83,7 @@ export default function App() {
 
       setIsStreaming(true);
       setStreamingContent("");
+      setError(null);
 
       const tempId = crypto.randomUUID();
       const userMsg: Message = {
@@ -111,8 +113,8 @@ export default function App() {
               break;
             }
             case "error":
-              console.error(event.detail);
               setIsStreaming(false);
+              setError(typeof event.detail === "string" ? event.detail : "An error occurred");
               break;
           }
         });
@@ -174,6 +176,7 @@ export default function App() {
               streamingContent={streamingContent}
               isStreaming={isStreaming}
               selectedChatId={activeChatId}
+              error={error}
               onSend={sendMessage}
             />
           </>
